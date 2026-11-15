@@ -267,3 +267,4 @@ col_p1, col_p2 = st.columns([1, 1.3])
 BARRIERS = {
     "Atomic Layer Deposited (ALD) Si₃N₄ / Al₂O₃": 1.0e-21,
     "PECVD Silicon Nitride (SiNₓ)": 5.0e-20,
+    {
