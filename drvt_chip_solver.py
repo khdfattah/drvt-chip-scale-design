@@ -294,4 +294,4 @@ else:
 total_chip_vol_mm3 = (chip_footprint_mm**2) * 5.0
 vol_efficiency_pct = (v_cav_mm3 / total_chip_vol_mm3) * 100.0
 
-with col_p2:
+  with col_p2:
