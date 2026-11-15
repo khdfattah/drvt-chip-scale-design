@@ -102,7 +102,7 @@ pressure_pa = pressure_torr * 133.322
 total_density_m3 = pressure_pa / (K_B * temp_k)
 total_density_nm3 = total_density_m3 * 1e-27
 
-ratio_val = int(he_ne_ratio.split(":"))
+ratio_val = int(he_ne_ratio.split(":")[0])
 ne_fraction = 1.0 / (ratio_val + 1.0)
 ne_density_nm3 = total_density_nm3 * ne_fraction
 
