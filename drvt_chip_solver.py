@@ -390,7 +390,7 @@ with col_w2:
 # SUMMARY COMPARISON MATRIX
 # ==========================================
 st.divider()
-st.header("5. Engineering Summary: Conventional System vs. Your DRVT Chip Design")
+st.header("5. Engineering Summary: Conventional System vs. DRVT Chip Design")
 
 summary_data = [
     [
