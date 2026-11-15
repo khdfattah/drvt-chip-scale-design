@@ -275,12 +275,6 @@ with col_p1:
   barrier_type = st.selectbox(
       "Cavity Permeation Barrier", list(BARRIERS.keys())
   )
-
-with col_p1:
-  st.subheader("Hermetic Packaging Inputs")
-  barrier_type = st.selectbox(
-      "Cavity Permeation Barrier", list(BARRIERS.keys())
-  )
   ballast_ml = st.number_input(
       "Integrated Ballast Reservoir Volume (mL)",
       value=0.20,
