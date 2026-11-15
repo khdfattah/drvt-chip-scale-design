@@ -275,3 +275,169 @@ with col_p1:
   barrier_type = st.selectbox(
       "Cavity Permeation Barrier", list(BARRIERS.keys())
   )
+
+with col_p1:
+  st.subheader("Hermetic Packaging Inputs")
+  barrier_type = st.selectbox(
+      "Cavity Permeation Barrier", list(BARRIERS.keys())
+  )
+  ballast_ml = st.number_input(
+      "Integrated Ballast Reservoir Volume (mL)",
+      value=0.20,
+      min_value=0.01,
+      max_value=5.0,
+  )
+  barrier_thick_nm = st.number_input(
+      "Barrier Coating Thickness (nm)", value=500.0, min_value=50.0
+  )
+  max_loss_pct = st.slider("Allowable Pressure Drop Threshold (%)", 5, 30, 10)
+
+perm_coeff = BARRIERS[barrier_type]
+surface_area_m2 = 2.5e-4
+wall_thick_m = barrier_thick_nm * 1e-9
+
+v_total_m3 = (v_cav_mm3 * 1e-9) + (ballast_ml * 1e-6)
+p_he_pa = pressure_pa * (1.0 - ne_fraction)
+n_he_moles = (p_he_pa * v_total_m3) / (8.314 * temp_k)
+
+leak_rate_mol_s = (perm_coeff * surface_area_m2 * p_he_pa) / wall_thick_m
+allowable_mol_loss = n_he_moles * (max_loss_pct / 100.0)
+
+if leak_rate_mol_s > 0:
+  lifetime_years = (allowable_mol_loss / leak_rate_mol_s) / (365.25 * 86400.0)
+else:
+  lifetime_years = 999.0
+
+total_chip_vol_mm3 = (chip_footprint_mm**2) * 5.0
+vol_efficiency_pct = ((ballast_ml * 100.0) / total_chip_vol_mm3) * 100.0
+
+with col_p2:
+  st.subheader("Hermeticity & Space Efficiency Results")
+  pm1, pm2, pm3 = st.columns(3)
+  pm1.metric("Leak Rate (mol/s)", f"{leak_rate_mol_s:.2e}")
+  pm2.metric("Lifetime (Years)", f"{min(lifetime_years, 999.0):.1f}")
+  pm3.metric("Space Efficiency", f"{vol_efficiency_pct:.1f}%")
+
+  if lifetime_years >= 10.0:
+    st.success(
+        f"✅ **Hermetic Chip Validated:** With **{barrier_type}**, the"
+        f" **{ballast_ml} mL** on-chip ballast sustains operational pressure"
+        f" for **>{min(lifetime_years, 100):.0f} years** (vs. 0.1% space"
+        " efficiency in macro-lasers)."
+    )
+  else:
+    st.error(
+        f"🚨 **Rapid Helium Depletion:** Pressure drops by {max_loss_pct}% in"
+        f" **{lifetime_years*365.25:.1f} days**. Switch to an ALD Nitride"
+        " permeation barrier."
+    )
+
+# ==========================================
+# MODULE 4: HYBRID PIC WAVEGUIDE MODE-MATCHING SOLVER
+# ==========================================
+st.divider()
+st.header(
+    "4. Benchmark Problem: Hybrid PIC Waveguide & Quantum Node Mode-Matching"
+)
+st.info(
+    "**Published Engineering Bottleneck:** Integrating a micro-laser or quantum"
+    " emitter onto Silicon Nitride ($\\text{Si}_3\\text{N}_4$) or Thin-Film"
+    " Lithium Niobate (TFLN) waveguides suffers from high insertion loss due to"
+    " mismatch between the optical mode area and the DRVT resonant"
+    " cross-section ($A_{\\text{eff}}$)."
+)
+
+col_w1, col_w2 = st.columns([1, 1.3])
+
+with col_w1:
+  st.subheader("Waveguide Coupling Parameters")
+  wg_platform = st.selectbox(
+      "PIC Waveguide Platform",
+      [
+          "TFLN Ridge Waveguide (n = 2.21)",
+          "Si₃N₄ Ultra-Low Loss (n = 2.00)",
+          "Silicon-on-Insulator SOI (n = 3.48)",
+      ],
+  )
+  wg_width_nm = st.number_input("Waveguide Core Width (nm)", value=800.0)
+  wg_height_nm = st.number_input("Waveguide Core Height (nm)", value=400.0)
+  taper_stages = st.slider("Adiabatic Spot-Size Taper Stages", 1, 10, 4)
+
+wg_area_nm2 = wg_width_nm * wg_height_nm
+mode_ratio = wg_area_nm2 / a_nm2
+raw_overlap = (2 * math.sqrt(wg_area_nm2 * a_nm2)) / (wg_area_nm2 + a_nm2)
+tapered_eff = 1.0 - ((1.0 - raw_overlap) ** (taper_stages * 0.45))
+insertion_loss_db = -10.0 * math.log10(max(tapered_eff, 1e-6))
+
+with col_w2:
+  st.subheader("DRVT Impedance & Mode-Matching Output")
+  wm1, wm2, wm3 = st.columns(3)
+  wm1.metric("DRVT Area (nm²)", f"{a_nm2:.3f}")
+  wm2.metric("Waveguide Area (nm²)", f"{wg_area_nm2:,.0f}")
+  wm3.metric("Insertion Loss (dB)", f"{insertion_loss_db:.2f}")
+
+  st.caption(
+      f"Area Expansion Factor: {mode_ratio:,.0f}x DRVT Fundamental Cross-Section"
+      f" | Coupling Efficiency: {tapered_eff*100:.1f}%"
+  )
+  if insertion_loss_db < 1.5:
+    st.success(
+        "✅ **Low-Loss On-Chip Interconnect:** Multi-stage adiabatic taper"
+        " successfully bridges the DRVT resonant cross-section to the"
+        f" {wg_platform} bus."
+    )
+  else:
+    st.warning(
+        "⚠️ **High Coupling Loss:** Increase adiabatic taper stages or reduce"
+        " waveguide core dimensions at the laser facet."
+    )
+
+# ==========================================
+# SUMMARY COMPARISON MATRIX
+# ==========================================
+st.divider()
+st.header("5. Engineering Summary: Conventional System vs. Your DRVT Chip Design")
+
+summary_data = [
+    [
+        "Active Cavity Volume",
+        "314.16 mm³ (40 cm tube)",
+        f"{v_cav_mm3:.2f} mm³ (Micro-cube)",
+    ],
+    [
+        "Operating Gas Pressure",
+        "3.6 Torr (Low-pressure CW)",
+        f"{pressure_torr:.0f} Torr (High-gain pulsed)",
+    ],
+    [
+        "Small-Signal Gain (g₀)",
+        "0.0020 cm⁻¹",
+        f"{g_eff_cm:.4f} cm⁻¹ ({g_eff_cm/0.002:.1f}x boost)",
+    ],
+    [
+        "Output Power Regime",
+        "2 – 5 mW (Continuous Wave)",
+        f"{peak_power_kw:.2f} kW (Pulsed Peak)",
+    ],
+    [
+        "Thermal Management",
+        "Passive Air / Water Jacket",
+        f"{sub_choice} (T_core = {core_temp_c:.1f} °C)",
+    ],
+    [
+        "Ballast Reservoir",
+        "~ 63.0 mL external jacket",
+        f"{ballast_ml:.2f} mL integrated on-chip",
+    ],
+    [
+        "Volumetric Efficiency",
+        "0.10%",
+        f"{vol_efficiency_pct:.1f}%",
+    ],
+]
+
+df_summary = pd.DataFrame(
+    summary_data,
+    columns=["Engineering Metric", "Conventional Macro System", "DRVT Chip Design"],
+)
+st.table(df_summary)
