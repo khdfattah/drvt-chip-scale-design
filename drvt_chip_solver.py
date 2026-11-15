@@ -294,4 +294,23 @@ else:
 total_chip_vol_mm3 = (chip_footprint_mm**2) * 5.0
 vol_efficiency_pct = (v_cav_mm3 / total_chip_vol_mm3) * 100.0
 
-  with col_p2:
+with col_p2:
+  st.subheader("Hermeticity & Space Efficiency Results")
+  pm1, pm2, pm3 = st.columns(3)
+  pm1.metric("He Leak Rate", f"{leak_rate_mol_s:.2e} mol/s")
+  pm2.metric("Operational Lifetime", f"{min(lifetime_years, 999.0):.1f} Years")
+  pm3.metric("Volumetric Efficiency", f"{vol_efficiency_pct:.2f}%")
+
+  if lifetime_years >= 10.0:
+    st.success(
+        f"✅ **Hermetic Chip Validated:** With **{barrier_type}**, the"
+        f" **{ballast_ml} mL** on-chip ballast sustains operational pressure"
+        f" for **>{min(lifetime_years, 100):.0f} years** (vs. 0.1% space"
+        " efficiency in macro-lasers)."
+    )
+  else:
+    st.error(
+        f"🚨 **Rapid Helium Depletion:** Pressure drops by {max_loss_pct}% in"
+        f" **{lifetime_years*365.25:.1f} days**. Switch to an ALD Nitride"
+        " permeation barrier."
+    )
